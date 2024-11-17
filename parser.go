@@ -11,8 +11,18 @@ var (
 	flagRegex = regexp.MustCompile(`^:flag-([a-zA-Z]{2}):$`)
 )
 
+type emojiWrapper interface {
+	Wrap(alias string, code string) string
+}
+
 // Parse replaces emoji aliases (:pizza:) with unicode representation.
 func Parse(input string) string {
+	return ParseWithWrapper(input, nil)
+}
+
+// ParseWithWrapper replaces emoji aliases (:pizza:) with the return value of
+// a wrapper function that is called with the alias and unicode representation.
+func ParseWithWrapper(input string, wrapper emojiWrapper) string {
 	var matched strings.Builder
 	var output strings.Builder
 
@@ -49,7 +59,11 @@ func Parse(input string) string {
 
 		// check for emoji alias
 		if code, ok := Find(alias); ok {
-			output.WriteString(code)
+			if wrapper != nil {
+				output.WriteString(wrapper.Wrap(alias, code))
+			} else {
+				output.WriteString(code)
+			}
 			matched.Reset()
 			continue
 		}
